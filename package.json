@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "npx prisma generate && npx auth@latest generate && npx prisma migrate dev"
+    "postinstall": "npx prisma generate && npx auth@latest generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

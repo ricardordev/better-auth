@@ -11,18 +11,21 @@ export function ButtonSignOut() {
     const router = useRouter();
 
     async function signOut() {
-        setIsLoading(true);
         await authClient.signOut({
             fetchOptions: {
+                onRequest: () => {
+                    setIsLoading(true);
+                },
                 onSuccess: () => {
-                    toast.success("Saindo...");
+                    toast.success("Signed out successfully");
                     router.replace("/");
                 },
                 onError: (ctx) => {
                     toast.error(ctx.error.message);
-                }
-            }
-        })
+                    setIsLoading(false);
+                },
+            },
+        });
     }
 
     return (

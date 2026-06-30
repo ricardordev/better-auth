@@ -18,7 +18,7 @@ const signupSchema = z
         confirmPassword: z.string().min(8, { message: "Confirm password must be at least 8 characters" }),
     })
     .refine((data) => data.password === data.confirmPassword, {
-        message: "As senhas não coincidem",
+        message: "Passwords do not match",
         path: ["confirmPassword"],
     })
 
@@ -41,7 +41,7 @@ export function SignupForm() {
     })
 
     async function onSubmit(formData: SignupFormValues) {
-        const { } = await authClient.signUp.email({
+        await authClient.signUp.email({
             name: formData.name,
             email: formData.email,
             password: formData.password
@@ -68,7 +68,7 @@ export function SignupForm() {
             <div className="grid gap-2">
                 <label className="flex items-center gap-2 text-sm leading-none text-zinc-400 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50" htmlFor="name">Name</label>
 
-                <input type="name" id="name" disabled={isLoading} className="flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 bg-zinc-900 text-zinc-100 border-zinc-700 placeholder:text-zinc-500 selection:bg-blue-900/50 selection:text-blue-50 focus-visible:border-blue-400 focus-visible:ring-[3px] focus-visible:ring-blue-400/30 aria-invalid:border-red-400 aria-invalid:ring-red-400/40" placeholder="Your full name" {...form.register("name")} aria-invalid={form.formState.errors.name ? "true" : "false"} />
+                <input type="text" id="name" disabled={isLoading} className="flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 bg-zinc-900 text-zinc-100 border-zinc-700 placeholder:text-zinc-500 selection:bg-blue-900/50 selection:text-blue-50 focus-visible:border-blue-400 focus-visible:ring-[3px] focus-visible:ring-blue-400/30 aria-invalid:border-red-400 aria-invalid:ring-red-400/40" placeholder="Your full name" {...form.register("name")} aria-invalid={form.formState.errors.name ? "true" : "false"} />
 
                 {form.formState.errors.name && (
                     <p

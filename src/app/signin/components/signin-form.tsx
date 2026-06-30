@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, Resolver } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { toast } from "react-toastify";
 
@@ -20,19 +20,34 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>
 
 type SigninFormProps = {
-    enabledProviders: {
-        twitch: boolean;
-        twitter: boolean;
-        github: boolean;
-    };
-}
+    enabledProviders: readonly string[];
+};
+
+const PROVIDER_CONFIG: Record<string, { label: string; loadingLabel: string; bgColor: string; icon: React.ComponentType<{ className?: string }> }> = {
+    twitch: {
+        label: "Sign in with Twitch",
+        loadingLabel: "Signing in with Twitch...",
+        bgColor: "bg-[#9146FF]",
+        icon: TwitchLogo,
+    },
+    twitter: {
+        label: "Sign in with X",
+        loadingLabel: "Signing in with X...",
+        bgColor: "bg-[#000000]",
+        icon: XLogo,
+    },
+    github: {
+        label: "Sign in with Github",
+        loadingLabel: "Signing in with Github...",
+        bgColor: "bg-[#0d1117]",
+        icon: GithubLogo,
+    },
+};
 
 export function SigninForm({ enabledProviders }: SigninFormProps) {
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [isLoadingTwitch, setIsLoadingTwitch] = useState(false)
-    const [isLoadingTwitter, setIsLoadingTwitter] = useState(false)
-    const [isLoadingGithub, setIsLoadingGithub] = useState(false)
+    const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
     const router = useRouter()
 
     const form = useForm<LoginFormValues>({
@@ -43,62 +58,26 @@ export function SigninForm({ enabledProviders }: SigninFormProps) {
         },
     })
 
-    async function handleLoginWithTwitch() {
+    async function handleSocialLogin(provider: string) {
         await authClient.signIn.social({
-            provider: "twitch",
+            provider,
             callbackURL: "/dashboard"
         }, {
             onRequest: () => {
-                setIsLoadingTwitch(true);
+                setLoadingProvider(provider);
             },
             onSuccess: () => {
-
+                // Redirect handled by Better Auth
             },
             onError: (ctx) => {
                 toast.error(ctx.response?.statusText || ctx.error.message);
-                setIsLoadingTwitch(false);
-            }
-        })
-    }
-
-    async function handleLoginWithTwitter() {
-        await authClient.signIn.social({
-            provider: "twitter",
-            callbackURL: "/dashboard"
-        }, {
-            onRequest: () => {
-                setIsLoadingTwitter(true);
-            },
-            onSuccess: () => {
-
-            },
-            onError: (ctx) => {
-                toast.error(ctx.response?.statusText || ctx.error.message);
-                setIsLoadingTwitter(false);
-            }
-        })
-    }
-
-    async function handleLoginWithGithub() {
-        await authClient.signIn.social({
-            provider: "github",
-            callbackURL: "/dashboard"
-        }, {
-            onRequest: () => {
-                setIsLoadingGithub(true);
-            },
-            onSuccess: () => {
-
-            },
-            onError: (ctx) => {
-                toast.error(ctx.response?.statusText || ctx.error.message);
-                setIsLoadingGithub(false);
+                setLoadingProvider(null);
             }
         })
     }
 
     async function onSubmit(formData: LoginFormValues) {
-        const { } = await authClient.signIn.email({
+        await authClient.signIn.email({
             email: formData.email,
             password: formData.password,
             callbackURL: "/dashboard"
@@ -116,7 +95,7 @@ export function SigninForm({ enabledProviders }: SigninFormProps) {
         })
     }
 
-    const hasSocialProviders = enabledProviders.twitch || enabledProviders.twitter || enabledProviders.github;
+    const hasSocialProviders = enabledProviders.length > 0;
 
     return (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -126,9 +105,7 @@ export function SigninForm({ enabledProviders }: SigninFormProps) {
                 <input type="email" id="email" disabled={isLoading} className="flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 bg-zinc-900 text-zinc-100 border-zinc-700 placeholder:text-zinc-500 selection:bg-blue-900/50 selection:text-blue-50 focus-visible:border-blue-400 focus-visible:ring-[3px] focus-visible:ring-blue-400/30 aria-invalid:border-red-400 aria-invalid:ring-red-400/40" placeholder="your@email.com" {...form.register("email")} aria-invalid={form.formState.errors.email ? "true" : "false"} />
 
                 {form.formState.errors.email && (
-                    <p
-                        className="text-destructive text-sm"
-                    >
+                    <p className="text-destructive text-sm">
                         {form.formState.errors.email.message}
                     </p>
                 )}
@@ -138,7 +115,7 @@ export function SigninForm({ enabledProviders }: SigninFormProps) {
                 <label className="flex items-center gap-2 text-sm leading-none text-zinc-400 font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50" htmlFor="password">Password</label>
 
                 <div className="relative">
-                    <input type={showPassword ? "text" : "password"} id="password" disabled={isLoading} className="flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm  disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 bg-zinc-900 text-zinc-100 border-zinc-700 placeholder:text-zinc-500 selection:bg-blue-900/50 selection:text-blue-50 focus-visible:border-blue-400 focus-visible:ring-[3px] focus-visible:ring-blue-400/30 aria-invalid:border-red-400 aria-invalid:ring-red-400/40" placeholder="••••••••" {...form.register("password")} aria-invalid={form.formState.errors.password ? "true" : "false"} />
+                    <input type={showPassword ? "text" : "password"} id="password" disabled={isLoading} className="flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 bg-zinc-900 text-zinc-100 border-zinc-700 placeholder:text-zinc-500 selection:bg-blue-900/50 selection:text-blue-50 focus-visible:border-blue-400 focus-visible:ring-[3px] focus-visible:ring-blue-400/30 aria-invalid:border-red-400 aria-invalid:ring-red-400/40" placeholder="••••••••" {...form.register("password")} aria-invalid={form.formState.errors.password ? "true" : "false"} />
 
                     <button
                         type="button"
@@ -156,9 +133,7 @@ export function SigninForm({ enabledProviders }: SigninFormProps) {
                 </div>
 
                 {form.formState.errors.password && (
-                    <p
-                        className="text-destructive text-sm"
-                    >
+                    <p className="text-destructive text-sm">
                         {form.formState.errors.password.message}
                     </p>
                 )}
@@ -186,68 +161,35 @@ export function SigninForm({ enabledProviders }: SigninFormProps) {
                 </div>
             )}
 
-            {enabledProviders.twitch && (
-                <button
-                    type="button"
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none aria-invalid:border-destructive h-9 px-4 py-2 w-full mb-1 bg-[#9146FF] border-[1px] border-zinc-700 text-white hover:bg-[#9146FF]/80 hover:text-white hover:border-zinc-700"
-                    onClick={handleLoginWithTwitch}
-                    disabled={isLoadingTwitch}
-                >
-                    {isLoadingTwitch ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Signing in with Twitch...
-                        </>
-                    ) : (
-                        <>
-                            <TwitchLogo className="mr-2 h-4 w-4" />
-                            Sign in with Twitch
-                        </>
-                    )}
-                </button>
-            )}
+            {enabledProviders.map((provider) => {
+                const config = PROVIDER_CONFIG[provider];
+                if (!config) return null;
 
-            {enabledProviders.twitter && (
-                <button
-                    type="button"
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none aria-invalid:border-destructive h-9 px-4 py-2 w-full mb-1 bg-[#000000] border-[1px] border-zinc-700 text-white hover:bg-[#101010] hover:text-white hover:border-zinc-700"
-                    onClick={handleLoginWithTwitter}
-                    disabled={isLoadingTwitter}
-                >
-                    {isLoadingTwitter ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Signing in with X...
-                        </>
-                    ) : (
-                        <>
-                            <XLogo className="mr-2 h-4 w-4" />
-                            Sign in with X
-                        </>
-                    )}
-                </button>
-            )}
+                const isProviderLoading = loadingProvider === provider;
+                const Icon = config.icon;
 
-            {enabledProviders.github && (
-                <button
-                    type="button"
-                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none aria-invalid:border-destructive h-9 px-4 py-2 w-full mb-1 bg-[#0d1117] border-[1px] border-zinc-700 text-white hover:bg-[#101010] hover:text-white hover:border-zinc-700"
-                    onClick={handleLoginWithGithub}
-                    disabled={isLoadingGithub}
-                >
-                    {isLoadingGithub ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Signing in with Github...
-                        </>
-                    ) : (
-                        <>
-                            <GithubLogo className="mr-2 h-4 w-4" />
-                            Sign in with Github
-                        </>
-                    )}
-                </button>
-            )}
+                return (
+                    <button
+                        key={provider}
+                        type="button"
+                        className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none aria-invalid:border-destructive h-9 px-4 py-2 w-full mb-1 border-[1px] border-zinc-700 text-white hover:opacity-80 ${config.bgColor}`}
+                        onClick={() => handleSocialLogin(provider)}
+                        disabled={isProviderLoading}
+                    >
+                        {isProviderLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                {config.loadingLabel}
+                            </>
+                        ) : (
+                            <>
+                                <Icon className="mr-2 h-4 w-4" />
+                                {config.label}
+                            </>
+                        )}
+                    </button>
+                );
+            })}
         </form>
     )
 }

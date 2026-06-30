@@ -1,13 +1,8 @@
 import Link from "next/link"
 import { SigninForm } from "./signin/components/signin-form"
+import { enabledProviders } from "@/lib/auth"
 
 export default function Home() {
-
-  const enabledProviders = {
-    twitch: !!(process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET),
-    twitter: !!(process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET),
-    github: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
-  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
